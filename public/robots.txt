@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://crper.github.io/next-time-shift/sitemap.xml
