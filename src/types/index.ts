@@ -6,6 +6,7 @@
 export type Timestamp = number;
 export type TimezoneString = string;
 export type ComponentSize = 'small' | 'middle' | 'large';
+export type AddTimestampResult = 'added' | 'duplicate' | 'invalid';
 
 // 主题相关类型
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -52,57 +53,6 @@ export interface BreakpointMap {
   xxl: boolean;
 }
 
-// 模态框配置类型
-export interface ModalConfig {
-  title?: string;
-  content?: React.ReactNode;
-  okText?: string;
-  cancelText?: string;
-  onOk?: () => void;
-  onCancel?: () => void;
-}
-
-// 通知配置类型
-export interface NotificationConfig {
-  message: string;
-  description?: string;
-  duration?: number;
-  placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-}
-
-// 消息类型
-export interface MessageInstance {
-  success: (content: string) => void;
-  error: (content: string) => void;
-  warning: (content: string) => void;
-  info: (content: string) => void;
-  loading: (content: string) => void;
-}
-
-// 模态框类型
-export interface ModalInstance {
-  confirm: (config: ModalConfig) => void;
-  info: (config: ModalConfig) => void;
-  success: (config: ModalConfig) => void;
-  error: (config: ModalConfig) => void;
-  warning: (config: ModalConfig) => void;
-}
-
-// 通知类型
-export interface NotificationInstance {
-  success: (config: NotificationConfig) => void;
-  error: (config: NotificationConfig) => void;
-  warning: (config: NotificationConfig) => void;
-  info: (config: NotificationConfig) => void;
-}
-
-// 静态方法类型
-export interface StaticMethods {
-  message: MessageInstance;
-  modal: ModalInstance;
-  notification: NotificationInstance;
-}
-
 // 时区状态类型
 export interface TimezoneState {
   // 时区相关状态
@@ -110,11 +60,11 @@ export interface TimezoneState {
   defaultTimezones: TimezoneString[];
   dateFormat: string;
   timeFormat: string;
-  
+
   // 时间戳相关状态
   timestampItems: TimestampItem[];
   activeTimestamp: number | null;
-  
+
   // 时区相关方法
   setSelectedTimezones: (timezones: TimezoneString[]) => void;
   addTimezone: (timezone: TimezoneString) => void;
@@ -124,9 +74,9 @@ export interface TimezoneState {
   setDefaultTimezones: (timezones: TimezoneString[]) => void;
   setDateFormat: (format: string) => void;
   setTimeFormat: (format: string) => void;
-  
+
   // 时间戳相关方法
-  addTimestamp: (timestamp: number) => void;
+  addTimestamp: (timestamp: number) => AddTimestampResult;
   removeTimestamp: (id: string) => void;
   setActiveTimestamp: (timestamp: number | null) => void;
   clearTimestamps: () => void;
@@ -137,14 +87,6 @@ export interface ThemeState {
   themeMode: ThemeMode;
   actualTheme: ActualTheme;
   setThemeMode: (mode: ThemeMode) => void;
-}
-
-// 消息状态类型
-export interface MessageState {
-  message: MessageInstance | null;
-  modal: ModalInstance | null;
-  notification: NotificationInstance | null;
-  setStaticMethods: (methods: StaticMethods) => void;
 }
 
 // 错误类型已移至 utils/error-handler.ts

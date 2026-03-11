@@ -1,5 +1,4 @@
 import ThemeProvider from '@/components/ThemeProvider';
-import GlobalStaticMethods from '@/utils/globalMessage';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { App } from 'antd';
 import type { Metadata } from 'next';
@@ -44,10 +43,7 @@ export default function RootLayout({
       <body>
         <AntdRegistry>
           <ThemeProvider>
-            <App>
-              <GlobalStaticMethods />
-              {children}
-            </App>
+            <App>{children}</App>
           </ThemeProvider>
         </AntdRegistry>
       </body>

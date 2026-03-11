@@ -3,8 +3,7 @@
  * 提供时间段判断、描述和视觉效果
  */
 
-import { DateTime } from 'luxon';
-import { normalizeTimestamp } from './core';
+import { toValidDateTime } from './core';
 
 /**
  * 时间信息接口
@@ -27,6 +26,21 @@ export interface SimpleTimeInfo {
   date: string;
 }
 
+const FALLBACK_TIME_INFO: TimeInfo = {
+  period: '未知',
+  description: '时间信息获取失败',
+  color: '#1890ff',
+  icon: '🕒',
+  amPm: '未知',
+  dayPeriodEmoji: '❓',
+};
+
+const FALLBACK_SIMPLE_TIME_INFO: SimpleTimeInfo = {
+  dayPeriod: '未知',
+  time: '--:--',
+  date: '----/--/--',
+};
+
 /**
  * 获取时间图标类型
  * @param timestamp Unix 时间戳（秒）
@@ -35,8 +49,8 @@ export interface SimpleTimeInfo {
  */
 export function getTimeIconType(timestamp: number | string | Date, timezone: string): string {
   try {
-    const ts = normalizeTimestamp(timestamp);
-    const date = DateTime.fromSeconds(ts).setZone(timezone);
+    const date = toValidDateTime(timestamp, timezone);
+    if (!date) return 'default';
     const hour = date.hour;
 
     if (hour >= 0 && hour < 5) {
@@ -70,8 +84,8 @@ export function getTimeIconType(timestamp: number | string | Date, timezone: str
  */
 export function getTimeColor(timestamp: number | string | Date, timezone: string): string {
   try {
-    const ts = normalizeTimestamp(timestamp);
-    const date = DateTime.fromSeconds(ts).setZone(timezone);
+    const date = toValidDateTime(timestamp, timezone);
+    if (!date) return '#1890ff';
     const hour = date.hour;
 
     if (hour >= 0 && hour < 5) {
@@ -106,23 +120,17 @@ export function getTimeColor(timestamp: number | string | Date, timezone: string
  * @returns 详细时间信息
  */
 export function getTimeInfo(timestamp: number | string | Date, timezone: string): TimeInfo {
-  // 标准化参数
-  const normalizedTimestamp = normalizeTimestamp(timestamp);
-
   if (!timezone || typeof timezone !== 'string') {
     console.error('Invalid timezone parameter for getTimeInfo', { timestamp, timezone });
-    return {
-      period: '未知',
-      description: '时间信息获取失败',
-      color: '#1890ff',
-      icon: '🕒',
-      amPm: '未知',
-      dayPeriodEmoji: '❓',
-    };
+    return FALLBACK_TIME_INFO;
   }
 
   try {
-    const date = DateTime.fromSeconds(normalizedTimestamp).setZone(timezone);
+    const date = toValidDateTime(timestamp, timezone);
+    if (!date) {
+      return FALLBACK_TIME_INFO;
+    }
+
     const hour = date.hour;
 
     let period = '';
@@ -207,14 +215,7 @@ export function getTimeInfo(timestamp: number | string | Date, timezone: string)
     };
   } catch (error) {
     console.error('获取时间信息失败:', error);
-    return {
-      period: '未知',
-      description: '时间信息获取失败',
-      color: '#1890ff',
-      icon: '🕒',
-      amPm: '未知',
-      dayPeriodEmoji: '❓',
-    };
+    return FALLBACK_TIME_INFO;
   }
 }
 
@@ -229,9 +230,12 @@ export function getSimpleTimeInfo(
   timezone: string
 ): SimpleTimeInfo {
   try {
-    const ts = normalizeTimestamp(timestamp);
-    const dateTime = DateTime.fromSeconds(ts).setZone(timezone);
-    const timeInfo = getTimeInfo(ts, timezone);
+    const dateTime = toValidDateTime(timestamp, timezone);
+    if (!dateTime) {
+      return FALLBACK_SIMPLE_TIME_INFO;
+    }
+
+    const timeInfo = getTimeInfo(Math.floor(dateTime.toSeconds()), timezone);
 
     return {
       dayPeriod: timeInfo.period,
@@ -240,11 +244,7 @@ export function getSimpleTimeInfo(
     };
   } catch (error) {
     console.error('获取简化时间信息失败:', error);
-    return {
-      dayPeriod: '未知',
-      time: '--:--',
-      date: '----/--/--',
-    };
+    return FALLBACK_SIMPLE_TIME_INFO;
   }
 }
 
@@ -273,8 +273,8 @@ export function getPeriodName(hour: number): string {
  */
 export function getDayPeriod(timestamp: number | string | Date, timezone: string): string {
   try {
-    const ts = normalizeTimestamp(timestamp);
-    const date = DateTime.fromSeconds(ts).setZone(timezone);
+    const date = toValidDateTime(timestamp, timezone);
+    if (!date) return '未知';
     return getPeriodName(date.hour);
   } catch (error) {
     console.error('获取时间段失败:', error);

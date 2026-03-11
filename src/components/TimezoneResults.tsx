@@ -20,7 +20,7 @@ interface TimezoneResultsProps {
  */
 const TimezoneResults = memo(
   ({ timestamp, timezones }: TimezoneResultsProps) => {
-    const { selectedTimezones } = useTimezoneStore();
+    const selectedTimezones = useTimezoneStore(state => state.selectedTimezones);
     const { isMobile, isMd } = useResponsive();
 
     // 使用传入的时区列表或默认使用选中的时区

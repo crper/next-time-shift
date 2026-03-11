@@ -37,20 +37,24 @@ export default function TimestampList({
 
   return (
     <div>
-      <div style={styles.merge(componentStyles.flexContainer, {
-        marginBottom: styles.spacing('md'),
-        paddingBottom: styles.spacing('sm'),
-        borderBottom: '1px solid rgba(0, 0, 0, 0.06)'
-      })}>
+      <div
+        style={styles.merge(componentStyles.flexContainer, {
+          marginBottom: styles.spacing('md'),
+          paddingBottom: styles.spacing('sm'),
+          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+        })}
+      >
         <HistoryOutlined style={{ marginRight: styles.spacing('xs') }} />
-        <Text strong style={{ fontSize: styles.fontSize(isMobile ? 'md' : 'lg') }}>时间戳列表</Text>
+        <Text strong style={{ fontSize: styles.fontSize(isMobile ? 'md' : 'lg') }}>
+          时间戳列表
+        </Text>
       </div>
 
       {items.length === 0 ? (
         <Empty description="暂无时间戳" />
       ) : (
         <>
-          {activeTimestamp && (
+          {activeTimestamp !== null && (
             <div
               style={styles.merge(
                 {
@@ -87,24 +91,39 @@ export default function TimestampList({
                       padding: styles.spacing('sm'),
                       borderRadius: styles.spacing('xs'),
                       backgroundColor: isActive ? 'rgba(24, 144, 255, 0.1)' : 'transparent',
-                      border: isActive ? '1px solid rgba(24, 144, 255, 0.3)' : '1px solid rgba(0, 0, 0, 0.06)',
+                      border: isActive
+                        ? '1px solid rgba(24, 144, 255, 0.3)'
+                        : '1px solid rgba(0, 0, 0, 0.06)',
                       transition: 'all 0.3s ease',
                       height: '100%',
                       display: 'flex',
                       flexDirection: 'column',
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
                     }}
                     onClick={() => onSelect(item.timestamp)}
                   >
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: styles.spacing('xs') }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: styles.spacing('xs'),
+                        }}
+                      >
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           {isActive && (
                             <Tooltip title="当前用于计算">
-                              <Badge status="processing" style={{ marginRight: styles.spacing('xs') }} />
+                              <Badge
+                                status="processing"
+                                style={{ marginRight: styles.spacing('xs') }}
+                              />
                             </Tooltip>
                           )}
-                          <Text strong style={{ fontSize: styles.fontSize(isMobile ? 'sm' : 'md') }}>
+                          <Text
+                            strong
+                            style={{ fontSize: styles.fontSize(isMobile ? 'sm' : 'md') }}
+                          >
                             {item.label}
                           </Text>
                         </div>

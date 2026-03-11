@@ -4,7 +4,7 @@
  */
 
 import { DateTime } from 'luxon';
-import { normalizeTimestamp } from './core';
+import { toValidDateTime } from './core';
 import { getTimeInfo } from './period';
 
 export interface WeekInfo {
@@ -36,8 +36,9 @@ export interface RelativeTimeInfo {
  */
 export function formatDate(ts: number | string | Date, tz: string = 'UTC'): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp).setZone(tz).toFormat('yyyy-MM-dd');
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效日期';
+    return dateTime.toFormat('yyyy-MM-dd');
   } catch (error) {
     console.error('格式化日期出错:', error);
     return '无效日期';
@@ -54,8 +55,9 @@ export function formatDate(ts: number | string | Date, tz: string = 'UTC'): stri
  */
 export function formatTime(ts: number | string | Date, tz: string = 'UTC'): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp).setZone(tz).toFormat('HH:mm:ss');
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效时间';
+    return dateTime.toFormat('HH:mm:ss');
   } catch (error) {
     console.error('格式化时间出错:', error);
     return '无效时间';
@@ -72,8 +74,9 @@ export function formatTime(ts: number | string | Date, tz: string = 'UTC'): stri
  */
 export function formatTimeWithMillis(ts: number | string | Date, tz: string = 'UTC'): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp).setZone(tz).toFormat('HH:mm:ss.SSS');
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效时间';
+    return dateTime.toFormat('HH:mm:ss.SSS');
   } catch (error) {
     console.error('格式化带毫秒时间出错:', error);
     return '无效时间';
@@ -90,8 +93,9 @@ export function formatTimeWithMillis(ts: number | string | Date, tz: string = 'U
  */
 export function formatDateTime(ts: number | string | Date, tz: string = 'UTC'): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp).setZone(tz).toFormat('yyyy-MM-dd HH:mm:ss');
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效日期时间';
+    return dateTime.toFormat('yyyy-MM-dd HH:mm:ss');
   } catch (error) {
     console.error('格式化日期时间出错:', error);
     return '无效日期时间';
@@ -113,8 +117,9 @@ export function formatCustom(
   tz: string = 'UTC'
 ): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp).setZone(tz).toFormat(format);
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效日期格式';
+    return dateTime.toFormat(format);
   } catch (error) {
     console.error('自定义格式化出错:', error);
     return '无效日期格式';
@@ -130,11 +135,9 @@ export function formatLocale(
   locale: string = 'zh-CN'
 ): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp)
-      .setZone(tz)
-      .setLocale(locale)
-      .toLocaleString(DateTime.DATE_FULL);
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效日期';
+    return dateTime.setLocale(locale).toLocaleString(DateTime.DATE_FULL);
   } catch (error) {
     console.error('本地化格式化出错:', error);
     return '无效日期';
@@ -150,11 +153,10 @@ export function formatRelative(
   locale: string = 'zh-CN'
 ): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效日期';
     const now = DateTime.now().setZone(tz);
-    const dateTime = DateTime.fromSeconds(timestamp).setZone(tz).setLocale(locale);
-
-    return dateTime.toRelative({ base: now }) || '未知时间';
+    return dateTime.setLocale(locale).toRelative({ base: now }) || '未知时间';
   } catch (error) {
     console.error('相对时间格式化出错:', error);
     return '无效日期';
@@ -170,8 +172,18 @@ export function getWeekInfo(
   locale: string = 'zh-CN'
 ): WeekInfo {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    const dateTime = DateTime.fromSeconds(timestamp).setZone(tz).setLocale(locale);
+    const dateTime = toValidDateTime(ts, tz)?.setLocale(locale);
+    if (!dateTime) {
+      return {
+        weekOfYear: 0,
+        isoWeek: 0,
+        dayOfWeek: '未知',
+        dayOfWeekShort: '未知',
+        dayOfYear: 0,
+        quarter: 0,
+        isWeekend: false,
+      };
+    }
 
     const isWeekend = dateTime.weekday === 6 || dateTime.weekday === 7;
 
@@ -206,9 +218,19 @@ export function getRelativeTimeInfo(
   tz: string = 'UTC'
 ): RelativeTimeInfo {
   try {
-    const timestamp = normalizeTimestamp(ts);
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) {
+      return {
+        fromNow: '未知',
+        toNow: '未知',
+        calendar: '未知',
+        isToday: false,
+        isTomorrow: false,
+        isYesterday: false,
+      };
+    }
+
     const now = DateTime.now().setZone(tz);
-    const dateTime = DateTime.fromSeconds(timestamp).setZone(tz);
 
     const isToday = dateTime.hasSame(now, 'day');
     const isTomorrow = dateTime.hasSame(now.plus({ days: 1 }), 'day');
@@ -251,9 +273,10 @@ export function getRelativeTimeInfo(
  */
 export function formatTimeWithPeriod(ts: number | string | Date, tz: string = 'UTC'): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    const dateTime = DateTime.fromSeconds(timestamp).setZone(tz);
-    const timeInfo = getTimeInfo(timestamp, tz);
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '无效时间';
+
+    const timeInfo = getTimeInfo(Math.floor(dateTime.toSeconds()), tz);
 
     return `${timeInfo.period} ${dateTime.toFormat('HH:mm')}`;
   } catch (error) {
@@ -267,8 +290,9 @@ export function formatTimeWithPeriod(ts: number | string | Date, tz: string = 'U
  */
 export function formatISO(ts: number | string | Date, tz: string = 'UTC'): string {
   try {
-    const timestamp = normalizeTimestamp(ts);
-    return DateTime.fromSeconds(timestamp).setZone(tz).toISO() || '';
+    const dateTime = toValidDateTime(ts, tz);
+    if (!dateTime) return '';
+    return dateTime.toISO() || '';
   } catch (error) {
     console.error('ISO格式化出错:', error);
     return '';

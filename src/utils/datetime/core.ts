@@ -9,11 +9,71 @@ import { DateTime, Duration, Info, Interval, Settings } from 'luxon';
 // 导出 luxon 核心功能
 export { DateTime, Duration, Info, Interval, Settings };
 
+const MILLISECOND_TIMESTAMP_THRESHOLD = 9999999999;
+
+function normalizeNumericTimestamp(value: number): number | null {
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+
+  const normalized =
+    Math.abs(value) > MILLISECOND_TIMESTAMP_THRESHOLD
+      ? Math.floor(value / 1000)
+      : Math.floor(value);
+  return Number.isFinite(normalized) ? normalized : null;
+}
+
 /**
  * 获取当前时间戳(秒)
  */
 export function getCurrentTimestamp(): number {
   return Math.floor(Date.now() / 1000);
+}
+
+/**
+ * 严格标准化时间戳
+ * 接受多种格式输入，无法解析时返回 null
+ *
+ * @param input 输入时间（时间戳/日期字符串/Date对象）
+ * @returns 标准化后的秒级时间戳，失败时返回 null
+ */
+export function tryNormalizeTimestamp(input: number | string | Date): number | null {
+  if (input instanceof Date) {
+    return normalizeNumericTimestamp(input.getTime());
+  }
+
+  if (isString(input)) {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    // 尝试用 luxon 解析
+    let parsed = DateTime.fromISO(trimmed);
+    if (!parsed.isValid) {
+      parsed = DateTime.fromRFC2822(trimmed);
+    }
+    if (!parsed.isValid) {
+      parsed = DateTime.fromFormat(trimmed, 'yyyy-MM-dd HH:mm:ss');
+    }
+    if (parsed.isValid) {
+      return normalizeNumericTimestamp(parsed.toSeconds());
+    }
+
+    // 尝试解析 Unix 时间戳字符串
+    if (/^-?\d+$/.test(trimmed)) {
+      const parsedNumber = Number.parseInt(trimmed, 10);
+      return normalizeNumericTimestamp(parsedNumber);
+    }
+
+    return null;
+  }
+
+  if (typeof input === 'number') {
+    return normalizeNumericTimestamp(input);
+  }
+
+  return null;
 }
 
 /**
@@ -24,40 +84,30 @@ export function getCurrentTimestamp(): number {
  * @returns 标准化的时间戳(秒)
  */
 export function normalizeTimestamp(input: number | string | Date): number {
-  if (input instanceof Date) {
-    return Math.floor(input.getTime() / 1000);
-  }
-
-  if (isString(input)) {
-    // 尝试用 luxon 解析
-    let parsed = DateTime.fromISO(input);
-    if (!parsed.isValid) {
-      parsed = DateTime.fromRFC2822(input);
-    }
-    if (!parsed.isValid) {
-      parsed = DateTime.fromFormat(input, 'yyyy-MM-dd HH:mm:ss');
-    }
-    if (parsed.isValid) {
-      return Math.floor(parsed.toSeconds());
-    }
-
-    // 尝试解析 Unix 时间戳字符串
-    const num = parseInt(input, 10);
-    if (!isNaN(num)) {
-      return input.length > 10 ? Math.floor(num / 1000) : num;
-    }
-
+  const parsed = tryNormalizeTimestamp(input);
+  if (parsed === null) {
     console.error('无法解析的日期字符串:', input);
-    return Math.floor(Date.now() / 1000);
+    return getCurrentTimestamp();
   }
 
-  // 处理数字时间戳
-  if (typeof input === 'number') {
-    return input > 9999999999 ? Math.floor(input / 1000) : input;
+  return parsed;
+}
+
+/**
+ * 安全地转换为 DateTime
+ * 无法解析时间戳或时区无效时返回 null
+ */
+export function toValidDateTime(
+  timestamp: number | string | Date,
+  timezone: string = 'UTC'
+): DateTime | null {
+  const normalizedTimestamp = tryNormalizeTimestamp(timestamp);
+  if (normalizedTimestamp === null) {
+    return null;
   }
 
-  console.error('不支持的时间戳类型:', input);
-  return Math.floor(Date.now() / 1000);
+  const dateTime = DateTime.fromSeconds(normalizedTimestamp).setZone(timezone);
+  return dateTime.isValid ? dateTime : null;
 }
 
 /**

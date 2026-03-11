@@ -1,5 +1,5 @@
-import { useMessageStore } from '@/store';
 import { AppError, ErrorType } from '@/utils/error-handler';
+import { App } from 'antd';
 import { useCallback } from 'react';
 
 /**
@@ -7,8 +7,7 @@ import { useCallback } from 'react';
  * 提供统一的错误处理和用户反馈机制
  */
 export function useErrorHandler() {
-  const message = useMessageStore(state => state.message);
-  const modal = useMessageStore(state => state.modal);
+  const { message, modal } = App.useApp();
 
   // 处理一般错误
   const handleError = useCallback(
@@ -154,7 +153,9 @@ export function useErrorHandler() {
   const createError = useCallback(
     (message: string, code?: string, status?: number, data?: unknown): AppError => {
       // 使用 AppError 类创建错误对象
-      const type = code ? ErrorType[code.toUpperCase() as keyof typeof ErrorType] || ErrorType.UNKNOWN : ErrorType.UNKNOWN;
+      const type = code
+        ? ErrorType[code.toUpperCase() as keyof typeof ErrorType] || ErrorType.UNKNOWN
+        : ErrorType.UNKNOWN;
       const error = new AppError(message, type, status, data);
       return error;
     },

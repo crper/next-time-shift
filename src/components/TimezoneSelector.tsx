@@ -3,17 +3,16 @@
 import { useStyles } from '@/hooks';
 import { useTimezoneStore } from '@/store';
 import {
+  filterTimezonesByQuery,
   generateCommonUTCTimezones,
   getAllTimezonesWithUTC,
   getRegionInfo,
-  type TimezoneOption,
+  groupTimezonesByRegion,
 } from '@/utils/datetime';
 import { Button, Card, Divider, Select, Space, Typography } from 'antd';
-import { uniq } from 'es-toolkit';
 import { useCallback, useMemo, useState } from 'react';
 
 const { Text } = Typography;
-const { OptGroup, Option } = Select;
 
 interface TimezoneSelectorProps {
   onChange?: (timezones: string[]) => void;
@@ -24,8 +23,9 @@ interface TimezoneSelectorProps {
  * 支持搜索、按地区分组、快速操作等功能
  */
 const TimezoneSelector = ({ onChange }: TimezoneSelectorProps) => {
-  const { selectedTimezones, setSelectedTimezones } = useTimezoneStore();
-  const { componentStyles, styles, isMobile } = useStyles();
+  const selectedTimezones = useTimezoneStore(state => state.selectedTimezones);
+  const setSelectedTimezones = useTimezoneStore(state => state.setSelectedTimezones);
+  const { styles, isMobile } = useStyles();
 
   // 本地状态
   const [searchValue, setSearchValue] = useState<string>('');
@@ -37,58 +37,15 @@ const TimezoneSelector = ({ onChange }: TimezoneSelectorProps) => {
   const regionInfo = useMemo(() => getRegionInfo(), []);
 
   // 按地区分组时区
-  const groupedTimezones = useMemo(() => {
-    const groups: Record<string, TimezoneOption[]> = {};
-
-    allTimezones.forEach(tz => {
-      const region = tz.region || 'Etc';
-      if (!groups[region]) {
-        groups[region] = [];
-      }
-      groups[region].push(tz);
-    });
-
-    // 对每个分组内的时区按偏移量排序
-    Object.keys(groups).forEach(region => {
-      groups[region].sort((a, b) => a.offset.localeCompare(b.offset));
-    });
-
-    return groups;
-  }, [allTimezones]);
+  const groupedTimezones = useMemo(() => groupTimezonesByRegion(allTimezones), [allTimezones]);
 
   // 过滤后的时区选项
   const filteredOptions = useMemo(() => {
-    if (!searchValue.trim()) {
-      return groupedTimezones;
-    }
+    if (!searchValue.trim()) return groupedTimezones;
 
-    const query = searchValue.toLowerCase().trim();
-    const filtered: Record<string, TimezoneOption[]> = {};
-
-    Object.entries(groupedTimezones).forEach(([region, timezones]) => {
-      const matchedTimezones = timezones.filter(
-        tz =>
-          tz.key.toLowerCase().includes(query) ||
-          tz.name.toLowerCase().includes(query) ||
-          tz.offset.includes(query) ||
-          tz.chineseName?.toLowerCase().includes(query) ||
-          tz.englishName?.toLowerCase().includes(query) ||
-          tz.country?.toLowerCase().includes(query) ||
-          // 增强UTC搜索支持
-          (query === 'utc' &&
-            (tz.key === 'UTC' ||
-              tz.key.startsWith('Etc/GMT') ||
-              tz.englishName?.toLowerCase().includes('utc') ||
-              tz.name.toLowerCase().includes('utc')))
-      );
-
-      if (matchedTimezones.length > 0) {
-        filtered[region] = matchedTimezones;
-      }
-    });
-
-    return filtered;
-  }, [groupedTimezones, searchValue]);
+    const matchedTimezones = filterTimezonesByQuery(allTimezones, searchValue);
+    return groupTimezonesByRegion(matchedTimezones);
+  }, [allTimezones, groupedTimezones, searchValue]);
 
   // 处理时区选择变更
   const handleChange = useCallback(
@@ -122,53 +79,49 @@ const TimezoneSelector = ({ onChange }: TimezoneSelectorProps) => {
   const handleSelectAllFiltered = useCallback(() => {
     const allFilteredTimezones = Object.values(filteredOptions).flat();
     const allKeys = allFilteredTimezones.map(tz => tz.key);
-    const newSelection = uniq([...selectedTimezones, ...allKeys]);
+    const newSelection = Array.from(new Set([...selectedTimezones, ...allKeys]));
     setSelectedTimezones(newSelection);
     onChange?.(newSelection);
   }, [filteredOptions, selectedTimezones, setSelectedTimezones, onChange]);
 
   // 反选当前选择
   const handleInvertSelection = useCallback(() => {
-    const allAvailableTimezones = Object.values(groupedTimezones).flat();
-    const allKeys = allAvailableTimezones.map(tz => tz.key);
+    const allKeys = allTimezones.map(tz => tz.key);
     const invertedSelection = allKeys.filter(key => !selectedTimezones.includes(key));
     setSelectedTimezones(invertedSelection);
     onChange?.(invertedSelection);
-  }, [groupedTimezones, selectedTimezones, setSelectedTimezones, onChange]);
+  }, [allTimezones, selectedTimezones, setSelectedTimezones, onChange]);
 
   // 快速选择标准UTC时区
   const handleSelectStandardUTC = useCallback(() => {
-    const standardUTCTimezones = Object.values(groupedTimezones)
-      .flat()
-      .filter(tz => tz.region === 'Etc')
-      .map(tz => tz.key);
-    const newSelection = uniq([...selectedTimezones, ...standardUTCTimezones]);
+    const standardUTCTimezones = allTimezones.filter(tz => tz.region === 'Etc').map(tz => tz.key);
+    const newSelection = Array.from(new Set([...selectedTimezones, ...standardUTCTimezones]));
     setSelectedTimezones(newSelection);
     onChange?.(newSelection);
-  }, [groupedTimezones, selectedTimezones, setSelectedTimezones, onChange]);
+  }, [allTimezones, selectedTimezones, setSelectedTimezones, onChange]);
 
-  // 渲染时区选项
-  const renderOptions = useMemo(() => {
+  // 使用 Select 原生 options 分组能力
+  const selectOptions = useMemo(() => {
     return Object.entries(filteredOptions).map(([region, timezones]) => {
       const regionData = regionInfo[region as keyof typeof regionInfo];
       const groupLabel = regionData ? `${regionData.icon} ${regionData.region}` : region;
 
-      return (
-        <OptGroup key={region} label={groupLabel}>
-          {timezones.map(tz => (
-            <Option key={tz.key} value={tz.key}>
-              <div style={componentStyles.flexContainer}>
-                <span>{tz.name}</span>
-                <Text type="secondary" style={{ fontSize: styles.fontSize('xs') }}>
-                  {tz.offset}
-                </Text>
-              </div>
-            </Option>
-          ))}
-        </OptGroup>
-      );
+      return {
+        label: groupLabel,
+        options: timezones.map(tz => ({
+          label: (
+            <div className="flex items-center justify-between gap-2">
+              <span>{tz.name}</span>
+              <Text type="secondary" style={{ fontSize: styles.fontSize('xs') }}>
+                {tz.offset}
+              </Text>
+            </div>
+          ),
+          value: tz.key,
+        })),
+      };
     });
-  }, [filteredOptions, regionInfo, componentStyles.flexContainer, styles]);
+  }, [filteredOptions, regionInfo, styles]);
 
   const totalFilteredCount = Object.values(filteredOptions).reduce(
     (sum, timezones) => sum + timezones.length,
@@ -280,9 +233,8 @@ const TimezoneSelector = ({ onChange }: TimezoneSelectorProps) => {
                 <Text type="secondary">没有找到匹配的时区</Text>
               </div>
             }
-          >
-            {renderOptions}
-          </Select>
+            options={selectOptions}
+          />
         </div>
 
         {/* 底部提示 */}

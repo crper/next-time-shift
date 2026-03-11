@@ -86,7 +86,7 @@ export default function TimestampInput({
         ) : (
           <DatePicker
             showTime
-            value={value ? dayjs.unix(value) : null}
+            value={value !== null && value !== undefined ? dayjs.unix(value) : null}
             onChange={date => onChange?.(date ? date.unix() : null)}
             placeholder="选择日期和时间"
             style={{ flex: 1 }}
@@ -97,8 +97,12 @@ export default function TimestampInput({
         )}
         <Button
           type="primary"
-          onClick={() => value && onAdd?.(value)}
-          disabled={!value || disabled}
+          onClick={() => {
+            if (value !== null && value !== undefined) {
+              onAdd?.(value);
+            }
+          }}
+          disabled={value === null || value === undefined || disabled}
           size={size}
         >
           添加
@@ -106,8 +110,8 @@ export default function TimestampInput({
       </Space.Compact>
 
       <Space wrap>
-        {quickTimeButtons.map((button, index) => (
-          <Tooltip key={index} title={button.tooltip} placement='bottom'>
+        {quickTimeButtons.map(button => (
+          <Tooltip key={button.label} title={button.tooltip} placement="bottom">
             <Button size={size} onClick={() => handleQuickTime(button.value())} disabled={disabled}>
               {button.label}
             </Button>

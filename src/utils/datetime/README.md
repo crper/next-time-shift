@@ -88,7 +88,11 @@ const isValid = isValidTimezone('Asia/Shanghai'); // true
 const tzInfo = getTimezoneInfo('Asia/Shanghai');
 
 // 时区转换
+// 语义：保持本地表盘时间不变，只切换时区解释（会改变 Unix 时间戳）
 const convertedTime = convertTimezone(timestamp, 'Asia/Shanghai', 'America/New_York');
+
+// 若要展示同一 Unix 时间戳在不同时区的本地时间，请直接格式化，不要调用 convertTimezone
+const sameInstantInNY = formatDateTime(timestamp, 'America/New_York');
 
 // 获取时区列表
 const allTimezones = getAllTimezones();
