@@ -87,13 +87,14 @@ export default function AboutPage() {
   ];
 
   const techStack = [
-    { name: 'Next.js 15.3', color: 'blue', description: '现代化 React 框架' },
-    { name: 'React 19.1', color: 'green', description: '用户界面构建库' },
+    { name: 'Next.js 16', color: 'blue', description: '现代化 React 框架' },
+    { name: 'React 19', color: 'green', description: '用户界面构建库' },
     { name: 'TypeScript', color: 'cyan', description: '类型安全开发' },
-    { name: 'Ant Design 5', color: 'geekblue', description: '企业级 UI 组件' },
+    { name: 'Ant Design 6', color: 'geekblue', description: '企业级 UI 组件' },
     { name: 'Luxon', color: 'purple', description: '先进日期时间处理' },
     { name: 'Zustand', color: 'magenta', description: '轻量级状态管理' },
     { name: 'Virtual Scroll', color: 'orange', description: '高性能列表渲染' },
+    { name: 'Vitest', color: 'volcano', description: '单元测试框架' },
   ];
 
   return (
@@ -366,7 +367,9 @@ export default function AboutPage() {
                         }}
                       >
                         <div style={{ marginBottom: '8px' }}>
-                          <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>推荐使用微信支付</Text>
+                          <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
+                            推荐使用微信支付
+                          </Text>
                         </div>
                         <Image
                           src={staticPath('/images/sponsor/sponsor_wechat.jpg')}
@@ -389,7 +392,9 @@ export default function AboutPage() {
                         }}
                       >
                         <div style={{ marginBottom: '8px' }}>
-                          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>推荐使用支付宝</Text>
+                          <Text strong style={{ color: '#1890ff', fontSize: '16px' }}>
+                            推荐使用支付宝
+                          </Text>
                         </div>
                         <Image
                           src={staticPath('/images/sponsor/sponsor_alipay.jpg')}
